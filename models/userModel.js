@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
     },
     publicKey:{type:String, required:true},
     privateKey:{type:String, required:true},
+    salt:{type:String, required:true},
 })
 
 const UserModel = mongoose.model('User', userSchema);

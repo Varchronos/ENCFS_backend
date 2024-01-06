@@ -2,12 +2,22 @@ const fs = require('fs');
 const crypto = require('crypto');
 const FileModel = require('../models/fileModel');
 const UserModel = require('../models/userModel')
-const { encryptWithPublicKey, encryptWithSymmetricKey, decryptWithPrivateKey, decryptWithSymmetricKey } = require('../middlewares/CryptoUtils')
+const { encryptWithPublicKey, encryptWithSymmetricKey, decryptWithPrivateKey, decryptWithSymmetricKey } = require('../middlewares/CryptoUtils');
+const jwt = require('jsonwebtoken');
+const jwt_secret_key = process.env.JWT_SECRET_KEY;
 
-exports.uploadFiles = async (req, res, next) => {
+
+exports.uploadFiles = async (req, res) => {
     try {
         const files = req.files;
-        const username = req.params.username;
+
+        //extracting username from current session
+        let username = '';
+        token = req.headers.authorization.split(' ')[1];
+        jwt.verify(token, jwt_secret_key, (err, decoded) => {
+            if (err) return res.status(404).json({ message: 'token verification failed' })
+            username = decoded.username;
+        })
 
         //finding if the user exists and then extracting the user's public key
         const currentUser = await UserModel.findOne({ username: username })
@@ -61,39 +71,23 @@ exports.uploadFiles = async (req, res, next) => {
     }
 };
 
-//inside try block
-
-// const encryptionKey = 'your-secret-key'; // Change this to your actual encryption key
-
-// for (let i = 0; i < files.length; i++) {
-//     const file = files[i];
-
-//     // Read the file content
-//     const fileContent = fs.readFileSync(file.path);
-
-//     // Encrypt the file content
-//     const cipher = crypto.createCipher('aes-256-cbc', encryptionKey);
-//     const encryptedBuffer = Buffer.concat([cipher.update(fileContent), cipher.final()]);
-
-//     // Save the encrypted content to a new file
-//     const encryptedFilePath = `${file.destination}encrypted_${file.filename}`;
-//     fs.writeFileSync(encryptedFilePath, encryptedBuffer);
-//     console.log('realpath:', file.path);
-//     // Save metadata to the database
-//     const newFile = new FileModel({
-//         name: file.originalname,
-//         path: encryptedFilePath,
-//         size: encryptedBuffer.length,
-//         mimetype: file.mimetype,
-//         username: username,
-//     });
-
-//     await newFile.save();
-// }
 
 exports.getFiles = async (req, res, next) => {
     try {
-        const username = req.params.username;
+
+        //extracting username from current session
+        let username = '';
+        token = req.headers.authorization.split(' ')[1];
+        jwt.verify(token, jwt_secret_key, (err, decoded) => {
+            if (err) return res.status(404).json({ message: 'token verification failed' })
+            username = decoded.username;
+        })
+
+        //checking if user exists
+        const user = await UserModel.findOne({ username })
+        if (!user) return res.status(404).json({ message: 'user not found' })
+
+        //searching for files for user
         const files = await FileModel.find({ username: username });
 
         const fileDetails = files.map(file => ({
@@ -113,7 +107,7 @@ exports.getFiles = async (req, res, next) => {
     }
 }
 
-exports.getSingleFile = async (req, res, next) => {
+exports.getSingleFile = async (req, res) => {
     try {
         //getting req parameters from dynamic routes
         const username = req.params.username;
@@ -136,7 +130,7 @@ exports.getSingleFile = async (req, res, next) => {
         //extracting the encrypted symmetric key of the current file and decrypting it
         const encryptedSymmetricKey = currentFile.encryptedSymmetricKey;
         const decryptedSymmetricKey = decryptWithPrivateKey(encryptedSymmetricKey, privateKey);
-        
+
 
         //decrypting the file content using the symmetric key and iv extracted from the current FileModel entry.
         const fileContent = fs.readFileSync(currentFile.path);

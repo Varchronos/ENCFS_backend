@@ -42,3 +42,16 @@ const decipher = crypto.createDecipheriv('aes-256-cbc',symmetricKey, Buffer.from
 const decryptedData = Buffer.concat([decipher.update(Buffer.from(encryptedData)), decipher.final()]);
 return decryptedData;
 }
+
+
+// exports.hashPublicKey = (data)=>{
+//   const hash = crypto.createHash('sha256').update(data).digest('hex');
+//   const shortenedKey = hash.slice(0,16);
+//   return shortenedKey;
+// }
+
+exports.hashWithSalt = (data, salt)=>{
+  const hash = crypto.createHash('sha256');
+  hash.update(data+salt);
+  return hash.digest('hex');
+}

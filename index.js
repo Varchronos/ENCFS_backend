@@ -4,7 +4,9 @@ const mongoose = require('mongoose');
 const userRoutes = require('./routes/userRoutes')
 const fileRoutes = require('./routes/fileRoutes')
 const app = express();
-const PORT = 3000;
+const MONGOSTRING = process.env.MONGODB_STRING;
+const PORT = process.env.PORT | 3000;
+require('dotenv').config();
 
 
 app.use(cors());  
@@ -14,7 +16,7 @@ app.use(express.json());
 app.use('/', userRoutes)
 app.use('/', fileRoutes);
 // Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/ENCFS');
+mongoose.connect(MONGOSTRING);
 
 // Handle MongoDB connection events
 const db = mongoose.connection;
